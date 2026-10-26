@@ -1,4 +1,4 @@
-import { parseUrl } from '@reflect/utils'
+import { safeParseUrl } from '@reflect/utils'
 import { AppError } from '../errors.ts'
 import type { GitHostCredentialService } from './git-host-credential-service.ts'
 import type { GitCredential, GitRepositoryService } from './git-repository-service.ts'
@@ -102,7 +102,7 @@ function checkInput({ remoteUrl, username, token }: ConnectGitHostInput): {
   }
   // The token travels encrypted and lives in the keychain only: plain
   // http, and a sign-in written into the URL, are refused.
-  const parsed = parseUrl(url)
+  const parsed = safeParseUrl(url)
   if (
     remote.kind !== 'https' ||
     parsed === null ||
