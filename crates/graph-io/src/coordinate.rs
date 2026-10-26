@@ -14,8 +14,9 @@ use reflect_types::AppResult;
 const TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Run `write` inside a coordinated replacing write of `target`. `write`
-/// always writes `target` itself: callers record that path, so a location the
-/// coordinator reports for a moved item is not used.
+/// writes `target` itself, because callers record that path. When the
+/// coordinator reports that another process moved the item, the write fails
+/// instead of writing outside the claim.
 pub(crate) fn coordinated_replace<T>(
     target: &Path,
     write: impl FnOnce() -> AppResult<T>,
@@ -72,10 +73,20 @@ fn coordinated_replace_within<T>(
 
     let write = Cell::new(Some(write));
     let result = Cell::new(None);
-    let accessor = RcBlock::new(|_: NonNull<NSURL>| {
-        if let Some(write) = write.take() {
-            result.set(Some(write()));
-        }
+    let accessor = RcBlock::new(|url: NonNull<NSURL>| {
+        // SAFETY: the coordinator passes a valid URL for the block's duration.
+        let claimed = unsafe { url.as_ref() }.to_file_path();
+        let Some(write) = write.take() else {
+            return;
+        };
+        result.set(Some(if claimed.as_deref() == Some(target) {
+            write()
+        } else {
+            Err(AppError::io(format!(
+                "{} moved while waiting for file coordination",
+                target.display()
+            )))
+        }));
     });
     let mut error = None;
     coordinator.coordinateWritingItemAtURL_options_error_byAccessor(
