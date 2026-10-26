@@ -1,12 +1,11 @@
 import { z } from 'zod'
 import type { HttpService } from '../ports/http-service.ts'
-import { bytesToBase64 } from '@reflect/utils'
+import { bytesToBase64, safeParseJson } from '@reflect/utils'
 import { AppError } from '../errors.ts'
 import { APP_REVIEW_STUB_KEY, stubTranscriptBody } from './app-review-demo.ts'
 import type { TranscriptionProvider } from './provider-config.ts'
 import {
   httpError,
-  safeJson,
   send,
   TranscriptionOversizeError,
   TranscriptionRejectedError,
@@ -151,7 +150,7 @@ const openAiResponseSchema = z.object({ text: z.string() })
 function isModelNotFound(body: string): boolean {
   const parsed = z
     .object({ error: z.object({ code: z.string().nullable() }) })
-    .safeParse(safeJson(body))
+    .safeParse(safeParseJson(body))
   return parsed.success && parsed.data.error.code === 'model_not_found'
 }
 
@@ -211,7 +210,7 @@ async function transcribeWithOpenAi(
     throw httpError('openai', response.status, body)
   }
 
-  const parsed = openAiResponseSchema.safeParse(safeJson(body))
+  const parsed = openAiResponseSchema.safeParse(safeParseJson(body))
   if (!parsed.success) {
     throw new AppError('parse', `unrecognized openai transcription response: ${body.slice(0, 200)}`)
   }
@@ -290,7 +289,7 @@ async function transcribeWithGemini(
     throw httpError('google', response.status, body)
   }
 
-  const parsed = geminiResponseSchema.safeParse(safeJson(body))
+  const parsed = geminiResponseSchema.safeParse(safeParseJson(body))
   if (!parsed.success) {
     throw new AppError('parse', `unrecognized gemini response: ${body.slice(0, 200)}`)
   }

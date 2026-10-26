@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { safeParseJson } from '@reflect/utils'
 import type { ClockService } from '../ports/clock-service.ts'
 import type { HttpService } from '../ports/http-service.ts'
 import { isAppError, AppError } from '../errors.ts'
@@ -478,11 +479,8 @@ class GithubAuthServiceImpl implements GithubAuthService {
     if (raw === null) {
       return null
     }
-    try {
-      return githubAuthSchema.parse(JSON.parse(raw))
-    } catch {
-      return null
-    }
+    const parsed = githubAuthSchema.safeParse(safeParseJson(raw))
+    return parsed.success ? parsed.data : null
   }
 
   /**

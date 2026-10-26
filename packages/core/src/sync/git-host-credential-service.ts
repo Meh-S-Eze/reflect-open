@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { safeParseJson } from '@reflect/utils'
 import { errorMessage } from '../errors.ts'
 import type { LoggerService } from '../ports/logger-service.ts'
 import type { SecretStoreService } from '../secrets/secret-store-service.ts'
@@ -69,7 +70,7 @@ class GitHostCredentialServiceImpl implements GitHostCredentialService {
     if (raw === null) {
       return null
     }
-    const parsed = credentialSchema.safeParse(parseJson(raw))
+    const parsed = credentialSchema.safeParse(safeParseJson(raw))
     if (!parsed.success) {
       logger.error(`the stored sign-in for ${origin} is unreadable; treating it as absent`)
       return null
@@ -110,12 +111,4 @@ export function createGitHostCredentialService(
   deps: GitHostCredentialServiceDeps,
 ): GitHostCredentialService {
   return new GitHostCredentialServiceImpl(deps)
-}
-
-function parseJson(value: string): unknown {
-  try {
-    return JSON.parse(value) as unknown
-  } catch {
-    return undefined
-  }
 }
