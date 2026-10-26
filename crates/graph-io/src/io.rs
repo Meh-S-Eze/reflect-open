@@ -295,7 +295,7 @@ pub fn atomic_create(root: &Path, target: &Path, contents: &str) -> AppResult<At
         return Ok(AtomicCreateOutcome::Collision);
     }
     let temp = stage_bytes(root, target, contents.as_bytes())?;
-    coordinated_replace(target, |path| match temp.persist_noclobber(path) {
+    coordinated_replace(target, || match temp.persist_noclobber(target) {
         Ok(file) => Ok(AtomicCreateOutcome::Created(
             file.metadata().ok().as_ref().and_then(modified_ms),
         )),
@@ -320,9 +320,9 @@ pub fn atomic_create(root: &Path, target: &Path, contents: &str) -> AppResult<At
 /// rename runs under file coordination ([`coordinated_replace`]).
 pub fn atomic_write_bytes(root: &Path, target: &Path, contents: &[u8]) -> AppResult<Option<u64>> {
     let tmp = stage_bytes(root, target, contents)?;
-    coordinated_replace(target, |path| {
+    coordinated_replace(target, || {
         let file = tmp
-            .persist(path)
+            .persist(target)
             .map_err(|err| AppError::io(err.to_string()))?;
         Ok(file.metadata().ok().as_ref().and_then(modified_ms))
     })

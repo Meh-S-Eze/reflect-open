@@ -14,29 +14,29 @@ use reflect_types::AppResult;
 const TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Run `write` inside a coordinated replacing write of `target`. `write`
-/// receives the path to write, which the coordinator may hand back changed
-/// when another process moved the item.
+/// always writes `target` itself: callers record that path, so a location the
+/// coordinator reports for a moved item is not used.
 pub(crate) fn coordinated_replace<T>(
     target: &Path,
-    write: impl FnOnce(&Path) -> AppResult<T>,
+    write: impl FnOnce() -> AppResult<T>,
 ) -> AppResult<T> {
     coordinated_replace_within(target, TIMEOUT, write)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn coordinated_replace_within<T>(
-    target: &Path,
+    _target: &Path,
     _timeout: Duration,
-    write: impl FnOnce(&Path) -> AppResult<T>,
+    write: impl FnOnce() -> AppResult<T>,
 ) -> AppResult<T> {
-    write(target)
+    write()
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 fn coordinated_replace_within<T>(
     target: &Path,
     timeout: Duration,
-    write: impl FnOnce(&Path) -> AppResult<T>,
+    write: impl FnOnce() -> AppResult<T>,
 ) -> AppResult<T> {
     use std::cell::Cell;
     use std::ptr::NonNull;
@@ -72,11 +72,9 @@ fn coordinated_replace_within<T>(
 
     let write = Cell::new(Some(write));
     let result = Cell::new(None);
-    let accessor = RcBlock::new(|url: NonNull<NSURL>| {
-        // SAFETY: the coordinator passes a valid URL for the block's duration.
-        let path = unsafe { url.as_ref() }.to_file_path();
+    let accessor = RcBlock::new(|_: NonNull<NSURL>| {
         if let Some(write) = write.take() {
-            result.set(Some(write(path.as_deref().unwrap_or(target))));
+            result.set(Some(write()));
         }
     });
     let mut error = None;
@@ -108,8 +106,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::ptr::NonNull;
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::{Arc, mpsc};
+    use std::sync::mpsc;
 
     use block2::RcBlock;
     use objc2_foundation::{NSFileCoordinator, NSFileCoordinatorReadingOptions, NSURL};
@@ -140,12 +137,7 @@ mod tests {
     fn the_write_runs_on_the_target() {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("note.md");
-        let written = coordinated_replace(&target, |path| {
-            fs::write(path, "# Note\n")?;
-            Ok(path.to_path_buf())
-        })
-        .unwrap();
-        assert_eq!(written, target);
+        coordinated_replace(&target, || Ok(fs::write(&target, "# Note\n")?)).unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "# Note\n");
     }
 
@@ -157,27 +149,26 @@ mod tests {
         let (release, released) = mpsc::channel();
         let reader = hold_read(&target, released);
 
-        // The write reports whether the reader had already let go when it ran.
-        let reader_done = Arc::new(AtomicBool::new(false));
+        // The write signals when it runs; a signal before the release is a failure.
+        let (write_ran, write_signal) = mpsc::channel();
         let (started, wait_started) = mpsc::channel();
         let writer = std::thread::spawn({
             let target = target.clone();
-            let reader_done = Arc::clone(&reader_done);
             move || {
                 started.send(()).unwrap();
-                coordinated_replace(&target, |path| {
-                    let ran_after_reader = reader_done.load(Ordering::SeqCst);
-                    fs::write(path, "after\n")?;
-                    Ok(ran_after_reader)
+                coordinated_replace(&target, || {
+                    write_ran.send(()).unwrap();
+                    Ok(fs::write(&target, "after\n")?)
                 })
             }
         });
         wait_started.recv().unwrap();
         std::thread::sleep(Duration::from_millis(200));
+        assert!(write_signal.try_recv().is_err());
 
-        reader_done.store(true, Ordering::SeqCst);
         release.send(()).unwrap();
-        assert!(writer.join().unwrap().unwrap());
+        writer.join().unwrap().unwrap();
+        write_signal.recv().unwrap();
         reader.join().unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "after\n");
     }
@@ -190,8 +181,8 @@ mod tests {
         let (release, released) = mpsc::channel();
         let reader = hold_read(&target, released);
 
-        let result = coordinated_replace_within(&target, Duration::from_millis(100), |path| {
-            Ok(fs::write(path, "after\n")?)
+        let result = coordinated_replace_within(&target, Duration::from_millis(100), || {
+            Ok(fs::write(&target, "after\n")?)
         });
 
         release.send(()).unwrap();

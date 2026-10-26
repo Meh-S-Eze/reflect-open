@@ -566,10 +566,11 @@ pub fn same_file_bytes(existing: &Path, staged: &Path) -> AppResult<bool> {
 /// silently clobbering — losing that race is a loud error, not a rename.
 pub fn persist_planned(fetched: FetchedAsset, assets_dir: &Path, name: &str) -> AppResult<()> {
     std::fs::create_dir_all(assets_dir)?;
-    coordinated_replace(&assets_dir.join(name), |path| {
+    let target = assets_dir.join(name);
+    coordinated_replace(&target, || {
         fetched
             .file
-            .persist_noclobber(path)
+            .persist_noclobber(&target)
             .map_err(|err| AppError::io(err.to_string()))?;
         Ok(())
     })
