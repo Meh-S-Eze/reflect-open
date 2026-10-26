@@ -129,7 +129,11 @@ export function createWebStorageService(deps: WebStorageServiceDeps): StorageSer
  * Parses the JSON stored at `key`; `undefined` when it is missing, malformed, or fails `schema`.
  */
 export function getJson<T>(store: KeyValueStore, key: string, schema: ZodType<T>): T | undefined {
-  const result = schema.safeParse(safeParseJson(store.get(key) ?? ''))
+  const value = safeParseJson(store.get(key) ?? '')
+  if (value === undefined) {
+    return undefined
+  }
+  const result = schema.safeParse(value)
   return result.success ? result.data : undefined
 }
 

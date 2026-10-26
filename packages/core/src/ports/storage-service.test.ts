@@ -116,6 +116,13 @@ describe('getJson and setJson', () => {
     expect(getJson(storage.local, 'invalid', schema)).toBeUndefined()
   })
 
+  it('does not let a schema default stand in for missing or malformed JSON', () => {
+    const storage = createTestStorageService({ local: { malformed: '{' } })
+    const withDefault = z.string().default('fallback')
+    expect(getJson(storage.local, 'missing', withDefault)).toBeUndefined()
+    expect(getJson(storage.local, 'malformed', withDefault)).toBeUndefined()
+  })
+
   it('does not write a value that fails the schema', () => {
     const storage = createTestStorageService()
     setJson(storage.local, 'key', z.string().min(2), 'x')
