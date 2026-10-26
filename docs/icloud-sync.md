@@ -92,12 +92,14 @@ delivery, and download/eviction behavior.
 
 ## Coordinated writes
 
-Every graph write stages its bytes under `.reflect/tmp/` and renames them into
-place. On macOS and iOS that rename runs inside an `NSFileCoordinator` writing
-claim with the replacing option (`crates/graph-io/src/coordinate.rs`), for
-every graph, in iCloud or not. File-sync daemons then see one ordered save of
-the item. A write waits at most 10 seconds for other coordinators, then fails
-like any other write error.
+Note and asset writes stage their bytes under `.reflect/tmp/` and rename them
+into place. On macOS and iOS the rename in `atomic_write_bytes`,
+`atomic_create` (`crates/graph-io/src/io.rs`) and `persist_planned`
+(`crates/graph-io/src/import_assets.rs`) runs inside an `NSFileCoordinator`
+writing claim with the replacing option (`crates/graph-io/src/coordinate.rs`),
+for every graph, in iCloud or not. File-sync daemons then see one ordered save
+of the item. A write waits at most 10 seconds for other coordinators, then
+fails like any other write error.
 
 ## Sync-excluded directories and the metadata query
 

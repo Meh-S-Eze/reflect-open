@@ -108,7 +108,8 @@ mod tests {
     use super::*;
     use std::fs;
     use std::ptr::NonNull;
-    use std::sync::mpsc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, mpsc};
 
     use block2::RcBlock;
     use objc2_foundation::{NSFileCoordinator, NSFileCoordinatorReadingOptions, NSURL};
@@ -156,15 +157,27 @@ mod tests {
         let (release, released) = mpsc::channel();
         let reader = hold_read(&target, released);
 
+        // The write reports whether the reader had already let go when it ran.
+        let reader_done = Arc::new(AtomicBool::new(false));
+        let (started, wait_started) = mpsc::channel();
         let writer = std::thread::spawn({
             let target = target.clone();
-            move || coordinated_replace(&target, |path| Ok(fs::write(path, "after\n")?))
+            let reader_done = Arc::clone(&reader_done);
+            move || {
+                started.send(()).unwrap();
+                coordinated_replace(&target, |path| {
+                    let ran_after_reader = reader_done.load(Ordering::SeqCst);
+                    fs::write(path, "after\n")?;
+                    Ok(ran_after_reader)
+                })
+            }
         });
+        wait_started.recv().unwrap();
         std::thread::sleep(Duration::from_millis(200));
-        assert_eq!(fs::read_to_string(&target).unwrap(), "before\n");
 
+        reader_done.store(true, Ordering::SeqCst);
         release.send(()).unwrap();
-        writer.join().unwrap().unwrap();
+        assert!(writer.join().unwrap().unwrap());
         reader.join().unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "after\n");
     }

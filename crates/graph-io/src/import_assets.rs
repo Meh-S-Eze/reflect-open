@@ -21,6 +21,8 @@ use std::time::Duration;
 
 use reflect_types::{AppError, AppResult};
 
+use crate::coordinate::coordinated_replace;
+
 /// Only asset links on Reflect V1's storage hosts are localized; every other
 /// URL in the export is an ordinary link and imports untouched.
 pub const V1_ASSET_URL_PREFIXES: &[&str] = &[
@@ -564,11 +566,13 @@ pub fn same_file_bytes(existing: &Path, staged: &Path) -> AppResult<bool> {
 /// silently clobbering — losing that race is a loud error, not a rename.
 pub fn persist_planned(fetched: FetchedAsset, assets_dir: &Path, name: &str) -> AppResult<()> {
     std::fs::create_dir_all(assets_dir)?;
-    fetched
-        .file
-        .persist_noclobber(assets_dir.join(name))
-        .map_err(|err| AppError::io(err.to_string()))?;
-    Ok(())
+    coordinated_replace(&assets_dir.join(name), |path| {
+        fetched
+            .file
+            .persist_noclobber(path)
+            .map_err(|err| AppError::io(err.to_string()))?;
+        Ok(())
+    })
 }
 
 #[cfg(test)]
