@@ -90,6 +90,15 @@ in CI. What *needs a real container* (and the two-device manual matrix in
 the plan doc) is the mobile `NSMetadataQuery` watch, `NSFileVersion` conflict
 delivery, and download/eviction behavior.
 
+## Coordinated writes
+
+Every graph write stages its bytes under `.reflect/tmp/` and renames them into
+place. On macOS and iOS that rename runs inside an `NSFileCoordinator` writing
+claim with the replacing option (`crates/graph-io/src/coordinate.rs`), for
+every graph, in iCloud or not. File-sync daemons then see one ordered save of
+the item. A write waits at most 10 seconds for other coordinators, then fails
+like any other write error.
+
 ## Sync-excluded directories and the metadata query
 
 `.reflect/` and `.git/` live inside the synced graph but are marked local-only
