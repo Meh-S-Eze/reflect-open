@@ -79,14 +79,16 @@ fn coordinated_replace_within<T>(
         let Some(write) = write.take() else {
             return;
         };
-        result.set(Some(if claimed.as_deref() == Some(target) {
-            write()
-        } else {
-            Err(AppError::io(format!(
-                "{} moved while waiting for file coordination",
-                target.display()
-            )))
-        }));
+        result.set(Some(
+            if claimed.is_some_and(|claimed| same_item(&claimed, target)) {
+                write()
+            } else {
+                Err(AppError::io(format!(
+                    "{} moved while waiting for file coordination",
+                    target.display()
+                )))
+            },
+        ));
     });
     let mut error = None;
     coordinator.coordinateWritingItemAtURL_options_error_byAccessor(
@@ -110,6 +112,16 @@ fn coordinated_replace_within<T>(
             target.display()
         ))),
     }
+}
+
+/// Whether two paths name the same item: equal, or the same file name in
+/// directories that resolve to the same place (symlinks, `..`).
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn same_item(left: &Path, right: &Path) -> bool {
+    let canonical_parent = |path: &Path| path.parent()?.canonicalize().ok();
+    left == right
+        || (left.file_name() == right.file_name()
+            && canonical_parent(left).is_some_and(|parent| Some(parent) == canonical_parent(right)))
 }
 
 #[cfg(all(test, any(target_os = "macos", target_os = "ios")))]
@@ -150,6 +162,33 @@ mod tests {
         let target = dir.path().join("note.md");
         coordinated_replace(&target, || Ok(fs::write(&target, "# Note\n")?)).unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "# Note\n");
+    }
+
+    #[test]
+    fn unnormalized_and_symlinked_targets_are_written() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real");
+        fs::create_dir_all(real.join("notes")).unwrap();
+        std::os::unix::fs::symlink(&real, dir.path().join("link")).unwrap();
+        for target in [
+            dir.path().join("link/notes/a.md"),
+            dir.path().join("real/./notes/b.md"),
+            dir.path().join("real/notes/../notes/c.md"),
+        ] {
+            coordinated_replace(&target, || Ok(fs::write(&target, "x")?)).unwrap();
+            assert_eq!(fs::read_to_string(&target).unwrap(), "x");
+        }
+    }
+
+    #[test]
+    fn same_item_resolves_directories() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real");
+        fs::create_dir_all(&real).unwrap();
+        std::os::unix::fs::symlink(&real, dir.path().join("link")).unwrap();
+        assert!(same_item(&real.join("a.md"), &dir.path().join("link/a.md")));
+        assert!(!same_item(&real.join("a.md"), &real.join("b.md")));
+        assert!(!same_item(&real.join("a.md"), &dir.path().join("a.md")));
     }
 
     #[test]
