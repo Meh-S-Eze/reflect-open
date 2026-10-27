@@ -1,3 +1,12 @@
+### Fork Agent System
+
+For work in this fork, read [agent-system/README.md](agent-system/README.md)
+and [the current handoff](agent-system/HANDOFF.md) alongside this guide. The
+visible folder owns fork-specific workflow and continuity; this file and the
+upstream contributor docs retain the product and architecture guidance below.
+Current human instructions govern scope. Repository setup is not authorization
+to implement a feature, use personal notes, publish a release, or contact upstream.
+
 ### Purpose
 
 This document helps AI agents and automated systems interact with the Reflect repo safely and effectively. It summarizes setup, workflows, CI parity, testing, directories, and environment variables.
