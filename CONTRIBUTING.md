@@ -1,7 +1,8 @@
 # Contributing to Reflect
 
 Thanks for helping build Reflect. This is the short version; the full
-contributor/agent guide lives in [AGENTS.md](AGENTS.md), and the architecture
+contributor/agent guide lives in [agent-system/PROJECT.md](agent-system/PROJECT.md),
+with agent routing in [AGENTS.md](AGENTS.md), and the architecture
 decisions in
 [docs/plans/architecture-conventions.md](docs/plans/architecture-conventions.md).
 

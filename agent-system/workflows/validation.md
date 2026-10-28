@@ -47,3 +47,11 @@ Tauri verification, synthetic checks from live use, and build from installation.
 Missing dependencies or unavailable platforms are gaps, not passing checks.
 After the appropriate checks pass, broaden testing only for an unresolved risk,
 a new edit, or a failure. Never use a production graph to resolve a test gap.
+
+Evidence applies to the inputs it checked. A relevant code, fixture, configuration,
+environment, or acceptance change invalidates the affected result; rerun those
+checks before making a fresh completion claim. Preserve prior failures and their
+resolution when they explain current limitations. Use deterministic checks for
+objective contracts; reserve model or human judgment for criteria those checks
+cannot establish. For high-risk claims, verify against the actual output rather
+than trusting a summary or worker's reported success.

@@ -7,7 +7,12 @@ from urllib.parse import unquote, urlsplit
 
 def main() -> None:
     root = Path(__file__).resolve().parents[2]
-    documents = [root / "AGENTS.md", *sorted((root / "agent-system").rglob("*.md"))]
+    documents = [
+        root / "AGENTS.md",
+        root / "CLAUDE.md",
+        root / "CONTRIBUTING.md",
+        *sorted((root / "agent-system").rglob("*.md")),
+    ]
     errors = []
     count = 0
     for document in documents:

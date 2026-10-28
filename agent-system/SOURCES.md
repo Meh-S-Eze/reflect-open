@@ -2,8 +2,9 @@
 
 ## Project authority
 
-- [AGENTS.md](../AGENTS.md): product principles, ownership, commands, review,
-  native sidecars, code conventions, and contribution workflow.
+- [AGENTS.md](../AGENTS.md): thin entry point into this folder.
+- [PROJECT.md](PROJECT.md): Reflect's original agent guide, including product
+  principles, architecture, commands, native sidecars, and code conventions.
 - [CONTRIBUTING.md](../CONTRIBUTING.md): setup and contribution expectations.
 - [Architecture](../docs/plans/architecture-conventions.md),
   [services](../docs/contributing/services.md),
@@ -31,7 +32,26 @@ database, and vault rules were not transferred here.
 The project-kit bootstrap classifier identified this checkout as a coding project,
 not an Obsidian vault or integration owner. The bootstrap and rule-authoring
 guidance informed the structure; the user explicitly chose a visible folder.
-Existing upstream instructions and provider setup files were preserved.
+The initial bootstrap preserved upstream instructions and provider setup files.
+
+## October 27 guidance consolidation
+
+The user then requested a Zettelkasten best-practice check and clarified that
+this folder should guide the project, merge useful existing agent guidance, and
+be reached from the root agent entrypoints.
+
+The full upstream guide was relocated from `AGENTS.md` at fork commit
+`1ec574e7f9128971c8b13741e7c327de1ec781d3` to [PROJECT.md](PROJECT.md), preserving
+its content with relative-link adjustments. Root `AGENTS.md` and `CLAUDE.md` now
+route through this folder. Executable provider setup and hooks were left intact.
+
+The [Zettelkasten source basis](references/zettelkasten-practices.md) records
+the exact local research notes, evidence grades, adaptations, and transfer
+limits. Shared vault framework and contract files were consulted to respect
+read/privacy boundaries, not imported as repository authority. Useful practices
+were integrated into existing workflows rather than copied into a second rules
+tree. The rule-authoring guidance informed concise routing; its provider-specific
+hidden-rule layout was not used because the user chose a visible shared folder.
 
 These breadcrumbs explain the setup. They do not authorize unrelated work or
 turn historical plans into current product requirements.

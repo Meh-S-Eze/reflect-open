@@ -13,6 +13,16 @@ acceptance/regression scenarios. Mark ideas as proposals until accepted. Obtain
 the upstream-required sign-off for broad UX, migrations, public APIs, and release
 behavior; do independent investigation while a decision is pending.
 
+For consequential or unresolved choices, record the options, selected behavior,
+reason, decision owner, and remaining uncertainty in the existing plan or handoff.
+Use a concrete example or small mockup when it clarifies the choice. Update the
+plan when findings contradict it. Routine implementation choices do not require
+a separate decision ledger or a new approval gate.
+
+Make acceptance observable: name the trigger, expected output, important failure
+cases, and evidence that could disprove success. A proxy score or passing helper
+test cannot establish usability or native behavior it does not exercise.
+
 ## Implement in the owning layer
 
 - Reuse [architecture conventions](../../docs/plans/architecture-conventions.md),
@@ -42,6 +52,11 @@ Review the final diff for correctness, private-note leakage, durable data loss,
 keyboard/focus behavior, stale async effects, unintended dependency changes,
 and upstream compatibility. An independent reviewer is useful when authorized;
 if none ran, report a self-review honestly. Do not claim human approval.
+
+For nontrivial work, review the implementation's decisions against the accepted
+scope as well as reviewing the code. Turn material new failures and repeated
+corrections into the scoped [learning loop](learning.md), rather than appending
+generic instructions after every task.
 
 ## Finish the authorized outcome
 

@@ -1,5 +1,9 @@
-# Reflect - Claude Code Guide
+# Reflect Agent Routing
 
-See [AGENTS.md](AGENTS.md) for the full project overview, tech stack, database tables, code conventions, and development cycle.
+Read [AGENTS.md](AGENTS.md), then follow its required reading through the shared
+[agent-system/ entry point](agent-system/README.md), including the full
+[Reflect project guide](agent-system/PROJECT.md) and
+[current handoff](agent-system/HANDOFF.md).
 
-Read ALL of it before starting ANY work. This is VERY important. You must read AGENTS.md in its entirety before continuing.
+This file is a provider adapter. Shared rules and workflows belong in
+`agent-system/`; do not duplicate them here.
